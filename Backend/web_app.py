@@ -5,6 +5,8 @@ Flask-based Web UI for LF Refining Furnace Heating Model
 
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flasgger import Swagger, swag_from
+from flask_socketio import SocketIO, emit
 import logging
 import os
 import sys
@@ -26,7 +28,32 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__,
             template_folder='web_ui/templates',
             static_folder='web_ui/static')
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Swagger configuration
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec',
+            "route": '/apispec.json',
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/api/docs"
+}
+swagger_template = {
+    "info": {
+        "title": "LF精炼炉加热模型API",
+        "description": "LF Refining Furnace Heating Model API Documentation",
+        "version": "1.0.0"
+    }
+}
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
 # 全局变量
 daemon_instance = None
@@ -318,6 +345,27 @@ def api_statistics():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+# WebSocket事件处理
+@socketio.on('connect')
+def handle_connect():
+    """WebSocket连接"""
+    logger.info(f"Client connected")
+    emit('connected', {'message': 'Connected to server'})
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """WebSocket断开"""
+    logger.info(f"Client disconnected")
+
+
+@socketio.on('subscribe_updates')
+def handle_subscribe():
+    """订阅实时更新"""
+    logger.info("Client subscribed to updates")
+    emit('subscribed', {'message': 'Subscribed to real-time updates'})
+
+
 def start_daemon_thread(db_factory, config):
     """在后台线程启动守护进程"""
     global daemon_instance
@@ -347,7 +395,8 @@ def run_web_ui(config_manager, start_daemon=True):
     debug = config_manager.get('web_ui.debug', False)
 
     logger.info(f"Starting Web UI on http://{host}:{port}")
-    app.run(host=host, port=port, debug=debug, use_reloader=False)
+    logger.info(f"API Documentation available at http://{host}:{port}/api/docs")
+    socketio.run(app, host=host, port=port, debug=debug, use_reloader=False, allow_unsafe_werkzeug=True)
 
 
 if __name__ == '__main__':
