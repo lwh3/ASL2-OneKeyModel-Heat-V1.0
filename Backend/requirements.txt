@@ -6,8 +6,16 @@ psycopg2-binary>=2.9.0      # PostgreSQL驱动
 pymysql>=1.1.0              # MySQL驱动
 cx_Oracle>=8.3.0            # Oracle驱动
 
-# 日志和配置
+# Web框架和API
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# 配置管理
 python-dotenv>=1.0.0
+pyyaml>=6.0.0
+
+# 日志增强
+colorlog>=6.7.0
 
 # 可选: 深度学习框架 (如果需要使用GPU加速)
 # torch>=2.0.0
