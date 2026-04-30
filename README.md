@@ -31,11 +31,29 @@
 
 **ASL2-OneKeyModel-Heat-V1.0** 是一个专为LF（Ladle Furnace）精炼炉设计的智能加热模型工艺包。该系统通过数据库缓冲表与主控程序交互，实现自动化、智能化的加热参数计算和控制。
 
+### ✨ 新特性: 双UI架构
+
+系统现支持**两种用户界面选项**，可根据使用场景灵活选择：
+
+#### 🌐 Vue3 WebUI
+- **现代化Web界面**：基于Vue 3 + Vite + Element Plus构建
+- **跨平台访问**：支持Windows/Linux/macOS/移动设备
+- **实时更新**：WebSocket实时数据推送
+- **响应式设计**：适配各种屏幕尺寸
+- 👉 [Vue3 WebUI文档](Frontend-Vue3/README.md)
+
+#### 🖥️ WPF Desktop应用
+- **原生Windows体验**：基于.NET 10 + Prism MVVM + Material Design
+- **高性能**：Windows原生应用，流畅运行
+- **离线能力**：支持离线数据缓存
+- **桌面集成**：系统托盘、快捷键等桌面特性
+- 👉 [WPF Desktop文档](Frontend-WPF/README.md)
+
 ### 核心价值
 
 - ⚡ **智能预测**：基于历史数据和数学模型的智能加热参数预测
 - 🔄 **实时响应**：守护进程轮询机制，秒级响应加热请求
-- 📊 **可视化监控**：Web UI实时监控系统运行状态和历史数据
+- 📊 **双UI选择**：Vue3 WebUI和WPF Desktop，满足不同场景需求
 - 🎛️ **灵活配置**：支持多种数据库、多算法切换、参数可调
 - 🔧 **易于集成**：标准数据库接口，无缝对接现有ASL2系统
 - 🛡️ **稳定可靠**：异常重试、断线重连、完整日志记录
@@ -159,21 +177,42 @@ ASL2-OneKeyModel-Heat-V1.0/
 │   │   ├── __init__.py
 │   │   ├── models.py            # ORM模型
 │   │   └── session.py           # 数据库连接管理
-│   ├── web_ui/                  # Web界面
+│   ├── web_ui/                  # 原Web界面（遗留）
 │   │   ├── templates/           # HTML模板
-│   │   │   └── index.html       # 主页面
 │   │   └── static/              # 静态资源
 │   ├── config.yaml              # 配置文件
 │   ├── config_manager.py        # 配置管理器
 │   ├── logger_config.py         # 日志配置
 │   ├── main.py                  # 命令行入口
-│   ├── web_app.py               # Web UI入口
+│   ├── web_app.py               # Web API服务器
 │   └── requirements.txt         # Python依赖
+├── Frontend-Vue3/                # Vue3 WebUI (新)
+│   ├── src/                     # 源代码
+│   │   ├── api/                 # API服务层
+│   │   ├── components/          # 组件
+│   │   ├── views/               # 页面视图
+│   │   ├── store/               # 状态管理
+│   │   └── router/              # 路由配置
+│   ├── package.json             # 依赖配置
+│   ├── vite.config.js           # Vite配置
+│   └── README.md                # Vue3文档
+├── Frontend-WPF/                 # WPF Desktop应用 (新)
+│   ├── HeatModelMonitor/        # WPF项目
+│   │   ├── Views/               # XAML视图
+│   │   ├── ViewModels/          # 视图模型
+│   │   ├── Models/              # 数据模型
+│   │   ├── Services/            # API服务
+│   │   └── App.xaml             # 应用程序
+│   ├── HeatModelMonitor.sln     # 解决方案文件
+│   └── README.md                # WPF文档
 ├── SQL/                         # 数据库脚本
 │   └── create_tables.sql        # 建表SQL
+├── DEPLOYMENT.md                # 部署指南 (新)
 ├── README.md                    # 本文档
-├── start.sh                     # Linux启动脚本
-└── start.bat                    # Windows启动脚本
+├── deploy.sh                    # 统一部署脚本 (Linux)
+├── deploy.bat                   # 统一部署脚本 (Windows)
+├── start.sh                     # 快速启动脚本
+└── start.bat                    # 快速启动脚本
 ```
 
 ### 数据库表设计
@@ -282,8 +321,10 @@ Updated_At      TIMESTAMP
 
 ### 后端
 - **Python 3.8+**
+- **Flask 3.0+**：Web框架与RESTful API
 - **SQLAlchemy 2.0+**：ORM框架
-- **Flask 3.0+**：Web框架
+- **Flask-SocketIO**：WebSocket实时通信
+- **Flasgger**：Swagger API文档
 - **PyYAML**：配置管理
 - **ColorLog**：彩色日志
 
@@ -293,24 +334,57 @@ Updated_At      TIMESTAMP
 - **Oracle**
 - **SQLite**（开发测试）
 
-### 前端
-- **HTML5 + CSS3**
-- **原生JavaScript**
-- **响应式设计**
+### 前端 - Vue3 WebUI
+- **Vue 3**：渐进式JavaScript框架
+- **Vite**：下一代构建工具
+- **Pinia**：Vue3官方状态管理
+- **Element Plus**：UI组件库
+- **ECharts**：数据可视化
+- **Axios**：HTTP客户端
+- **Socket.IO Client**：WebSocket客户端
+
+### 前端 - WPF Desktop
+- **.NET 10**：最新.NET框架
+- **WPF**：Windows桌面UI框架
+- **Prism 9**：MVVM框架
+- **Material Design in XAML**：UI组件库
+- **LiveChartsCore**：图表库
+- **RestSharp**：REST API客户端
 
 ---
 
 ## 🚀 快速开始
 
-### 1. 环境要求
+### 环境要求
 
 - Python 3.8 或更高版本
 - 数据库（PostgreSQL/MySQL/Oracle/SQLite任选其一）
-- pip（Python包管理器）
+- **可选**: Node.js 16+ (用于Vue3 WebUI)
+- **可选**: .NET 10 (用于WPF Desktop)
 
-### 2. 安装步骤
+### 统一部署脚本 (推荐)
 
-#### 步骤1：克隆或下载代码
+#### Linux/macOS
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+#### Windows
+```cmd
+deploy.bat
+```
+
+部署脚本将引导您选择：
+1. 完整部署 (后端 + Vue3 + WPF)
+2. 仅部署后端
+3. 仅部署Vue3前端
+4. 仅构建WPF应用
+5. 启动服务
+
+### 手动部署
+
+#### 1. 部署后端 (必需)
 
 ```bash
 git clone https://github.com/lwh3/ASL2-OneKeyModel-Heat-V1.0.git
@@ -322,6 +396,9 @@ cd ASL2-OneKeyModel-Heat-V1.0
 ```bash
 cd Backend
 pip install -r requirements.txt
+```bash
+cd Backend
+pip install -r requirements.txt
 ```
 
 **注意**：如果使用特定数据库，可能需要额外安装驱动：
@@ -329,7 +406,7 @@ pip install -r requirements.txt
 - MySQL: `pymysql` (已包含)
 - Oracle: `cx_Oracle` (已包含，需要Oracle Instant Client)
 
-#### 步骤3：配置数据库
+#### 2. 配置数据库
 
 ##### 3.1 创建数据库（如使用PostgreSQL）
 
@@ -372,21 +449,52 @@ database:
   create_tables: true
 ```
 
-#### 步骤5：启动系统
+#### 3. 选择并部署UI
 
-##### 方式1：启动Web UI（推荐）
+**选项A: Vue3 WebUI** (跨平台Web界面)
+```bash
+cd Frontend-Vue3
+npm install
+npm run dev  # 开发模式
+# 或
+npm run build  # 生产构建
+```
+访问: http://localhost:3000
+📖 [详细文档](Frontend-Vue3/README.md)
+
+**选项B: WPF Desktop** (Windows原生应用)
+```bash
+cd Frontend-WPF/HeatModelMonitor
+dotnet restore
+dotnet run  # 开发模式
+# 或
+dotnet publish -c Release -r win-x64 --self-contained true  # 生产构建
+```
+📖 [详细文档](Frontend-WPF/README.md)
+
+**选项C: 遗留Web UI** (简单HTML界面，已过时)
+无需额外配置，后端启动时自动可用: http://localhost:5000
+
+#### 4. 启动后端服务
+
+**方式1：启动Web UI（推荐）**
 
 ```bash
 # Linux/Mac
+cd Backend
 python web_app.py
 
 # Windows
+cd Backend
 python web_app.py
 ```
 
-访问：http://localhost:5000
+访问：
+- API: http://localhost:5000/api/status
+- Swagger文档: http://localhost:5000/api/docs
+- 遗留Web UI: http://localhost:5000
 
-##### 方式2：仅启动守护进程（无Web UI）
+**方式2：仅启动守护进程（无Web UI）**
 
 ```bash
 # Linux/Mac
@@ -396,7 +504,7 @@ python main.py --create-tables
 python main.py --create-tables
 ```
 
-##### 方式3：使用启动脚本
+**方式3：使用启动脚本**
 
 ```bash
 # Linux/Mac
@@ -407,18 +515,31 @@ chmod +x ../start.sh
 ..\start.bat
 ```
 
-### 3. 验证安装
+### 详细部署指南
 
-#### 3.1 检查系统状态
+完整的部署文档，包括生产环境部署、Docker部署、性能优化等，请查看：
+📖 **[DEPLOYMENT.md](DEPLOYMENT.md)**
 
-访问Web UI：http://localhost:5000
+### 验证安装
+
+#### 检查后端服务
+
+访问Web UI：http://localhost:5000/api/docs
 
 或通过API：
 ```bash
 curl http://localhost:5000/api/status
 ```
 
-#### 3.2 创建测试任务
+#### Vue3 WebUI验证
+
+访问: http://localhost:3000 (开发模式)
+
+#### WPF Desktop验证
+
+运行HeatModelMonitor.exe，检查是否能连接到后端API。
+
+### 创建测试任务
 
 使用SQL插入测试任务：
 
