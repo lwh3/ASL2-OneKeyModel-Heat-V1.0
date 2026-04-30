@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LF精炼炉加热模型监控系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            padding: 0 30px;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1em;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .badge-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-pending {
+            background: #ffc107;
+            color: black;
+        }
+
+        .badge-error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .config-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .config-item:last-child {
+            border-bottom: none;
+        }
+
+        .config-label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .config-value {
+            color: #667eea;
+            font-family: monospace;
+        }
+
+        .logs-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .log-line {
+            padding: 5px 0;
+            border-bottom: 1px solid #2e2e2e;
+        }
+
+        .log-level-INFO {
+            color: #4ec9b0;
+        }
+
+        .log-level-WARNING {
+            color: #dcdcaa;
+        }
+
+        .log-level-ERROR {
+            color: #f48771;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: #764ba2;
+        }
+
+        .algorithm-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #dee2e6;
+        }
+
+        .algorithm-card.active {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .algorithm-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .algorithm-description {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .precision-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .precision-high {
+            background: #28a745;
+            color: white;
+        }
+
+        .precision-medium {
+            background: #ffc107;
+            color: black;
+        }
+
+        .precision-low {
+            background: #dc3545;
+            color: white;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #28a745;
+            box-shadow: 0 0 8px #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+
+        footer {
+            background: #2d3748;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔥 LF精炼炉加热模型监控系统</h1>
+            <p class="subtitle">ASL2 OneKey Heat Model - Real-time Monitoring & Management</p>
+            <p style="margin-top: 10px;">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="systemStatus">正在连接...</span>
+            </p>
+        </header>
+
+        <div class="dashboard">
+            <div class="stat-card">
+                <div class="stat-label">总任务数</div>
+                <div class="stat-value" id="totalTasks">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">待处理</div>
+                <div class="stat-value" id="pendingTasks">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">已完成</div>
+                <div class="stat-value" id="completedTasks">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">错误</div>
+                <div class="stat-value" id="errorTasks">-</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('tasks')">任务列表</button>
+            <button class="tab" onclick="showTab('algorithms')">算法管理</button>
+            <button class="tab" onclick="showTab('config')">系统配置</button>
+            <button class="tab" onclick="showTab('logs')">系统日志</button>
+            <button class="tab" onclick="showTab('history')">历史数据</button>
+        </div>
+
+        <div id="tasks" class="tab-content active">
+            <button class="refresh-btn" onclick="loadTasks()">🔄 刷新任务列表</button>
+            <div class="table-container">
+                <table id="tasksTable">
+                    <thead>
+                        <tr>
+                            <th>任务ID</th>
+                            <th>钢种</th>
+                            <th>加热阶段</th>
+                            <th>当前温度</th>
+                            <th>目标温度</th>
+                            <th>状态</th>
+                            <th>加热档位</th>
+                            <th>加热时长</th>
+                            <th>算法</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksBody">
+                        <tr><td colspan="9" style="text-align:center;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="algorithms" class="tab-content">
+            <h2 style="margin-bottom: 20px;">可用算法</h2>
+            <div id="algorithmsContainer">加载中...</div>
+        </div>
+
+        <div id="config" class="tab-content">
+            <h2 style="margin-bottom: 20px;">系统配置</h2>
+            <div id="configContainer">加载中...</div>
+        </div>
+
+        <div id="logs" class="tab-content">
+            <button class="refresh-btn" onclick="loadLogs()">🔄 刷新日志</button>
+            <div class="logs-container" id="logsContainer">加载中...</div>
+        </div>
+
+        <div id="history" class="tab-content">
+            <button class="refresh-btn" onclick="loadHistory()">🔄 刷新历史</button>
+            <div class="table-container">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>任务ID</th>
+                            <th>钢种</th>
+                            <th>阶段</th>
+                            <th>起始温度</th>
+                            <th>结束温度</th>
+                            <th>档位</th>
+                            <th>时长</th>
+                            <th>结果</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr><td colspan="9" style="text-align:center;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 ASL2 OneKeyModel Heat V1.0 | LF精炼炉加热模型工艺包</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        // 初始化
+        loadStatus();
+        loadTasks();
+        loadAlgorithms();
+        loadConfig();
+        loadLogs();
+
+        // 自动刷新
+        setInterval(loadStatus, 5000);
+        setInterval(loadTasks, 10000);
+
+        function showTab(tabName) {
+            // 隐藏所有标签页
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 显示选中的标签页
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // 加载对应数据
+            if (tabName === 'logs') loadLogs();
+            if (tabName === 'history') loadHistory();
+        }
+
+        function loadStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        document.getElementById('totalTasks').textContent = data.statistics.total_tasks;
+                        document.getElementById('pendingTasks').textContent = data.statistics.pending_tasks;
+                        document.getElementById('completedTasks').textContent = data.statistics.completed_tasks;
+                        document.getElementById('errorTasks').textContent = data.statistics.error_tasks;
+
+                        const indicator = document.getElementById('statusIndicator');
+                        const statusText = document.getElementById('systemStatus');
+
+                        if (data.daemon.running) {
+                            indicator.className = 'status-indicator status-online';
+                            statusText.textContent = '系统运行中';
+                        } else {
+                            indicator.className = 'status-indicator status-offline';
+                            statusText.textContent = '系统离线';
+                        }
+                    }
+                })
+                .catch(error => console.error('Error loading status:', error));
+        }
+
+        function loadTasks() {
+            fetch('/api/tasks?limit=50')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('tasksBody');
+                    tbody.innerHTML = '';
+
+                    if (data.tasks && data.tasks.length > 0) {
+                        data.tasks.forEach(task => {
+                            const row = tbody.insertRow();
+                            row.innerHTML = `
+                                <td>${task.task_id}</td>
+                                <td>${task.steel_grade}</td>
+                                <td>${task.heat_stage}</td>
+                                <td>${task.current_temp || '-'}</td>
+                                <td>${task.target_temp}</td>
+                                <td>${getStatusBadge(task)}</td>
+                                <td>${task.output ? task.output.heat_level : '-'}</td>
+                                <td>${task.output ? task.output.heat_duration : '-'}</td>
+                                <td>${task.output ? task.output.algorithm_used : '-'}</td>
+                            `;
+                        });
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">暂无数据</td></tr>';
+                    }
+                })
+                .catch(error => console.error('Error loading tasks:', error));
+        }
+
+        function getStatusBadge(task) {
+            if (task.output && task.output.finish_flag === 1) {
+                if (task.output.error_code === 0) {
+                    return '<span class="badge badge-success">已完成</span>';
+                } else {
+                    return '<span class="badge badge-error">错误</span>';
+                }
+            } else if (task.start_flag === 1) {
+                return '<span class="badge badge-pending">处理中</span>';
+            } else {
+                return '<span class="badge badge-pending">等待中</span>';
+            }
+        }
+
+        function loadAlgorithms() {
+            fetch('/api/algorithms')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('algorithmsContainer');
+                    container.innerHTML = '';
+
+                    const algos = data.algorithms;
+                    const defaultAlgo = algos.default;
+
+                    // Algorithm 1
+                    if (algos.algorithm1) {
+                        const isActive = defaultAlgo === 'Algorithm1';
+                        container.innerHTML += createAlgorithmCard('Algorithm1', algos.algorithm1, isActive);
+                    }
+
+                    // Algorithm 2
+                    if (algos.algorithm2) {
+                        const isActive = defaultAlgo === 'Algorithm2';
+                        container.innerHTML += createAlgorithmCard('Algorithm2', algos.algorithm2, isActive);
+                    }
+                })
+                .catch(error => console.error('Error loading algorithms:', error));
+        }
+
+        function createAlgorithmCard(id, algo, isActive) {
+            const precisionClass = `precision-${algo.precision || 'medium'}`;
+            const activeClass = isActive ? 'active' : '';
+            return `
+                <div class="algorithm-card ${activeClass}">
+                    <div class="algorithm-name">${id}: ${algo.name || id}</div>
+                    <div class="algorithm-description">${algo.description || '暂无描述'}</div>
+                    <div>
+                        <span class="precision-badge ${precisionClass}">精度: ${algo.precision || 'medium'}</span>
+                        ${isActive ? '<span class="badge badge-success" style="margin-left: 10px;">当前使用</span>' : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadConfig() {
+            fetch('/api/config')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('configContainer');
+                    container.innerHTML = '';
+
+                    if (data.configs && data.configs.length > 0) {
+                        data.configs.forEach(config => {
+                            container.innerHTML += `
+                                <div class="config-section">
+                                    <div class="config-item">
+                                        <div>
+                                            <div class="config-label">${config.key}</div>
+                                            <div style="font-size: 0.9em; color: #666;">${config.description || ''}</div>
+                                        </div>
+                                        <div class="config-value">${config.value}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        container.innerHTML = '<p>暂无配置数据</p>';
+                    }
+                })
+                .catch(error => console.error('Error loading config:', error));
+        }
+
+        function loadLogs() {
+            fetch('/api/logs?lines=100')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('logsContainer');
+                    container.innerHTML = '';
+
+                    if (data.logs && data.logs.length > 0) {
+                        data.logs.forEach(line => {
+                            const logLevel = getLogLevel(line);
+                            container.innerHTML += `<div class="log-line log-level-${logLevel}">${escapeHtml(line)}</div>`;
+                        });
+                        container.scrollTop = container.scrollHeight;
+                    } else {
+                        container.innerHTML = '<div>暂无日志</div>';
+                    }
+                })
+                .catch(error => console.error('Error loading logs:', error));
+        }
+
+        function getLogLevel(line) {
+            if (line.includes('ERROR')) return 'ERROR';
+            if (line.includes('WARNING')) return 'WARNING';
+            return 'INFO';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function loadHistory() {
+            fetch('/api/history?limit=100')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('historyBody');
+                    tbody.innerHTML = '';
+
+                    if (data.history && data.history.length > 0) {
+                        data.history.forEach(record => {
+                            const row = tbody.insertRow();
+                            row.innerHTML = `
+                                <td>${new Date(record.timestamp).toLocaleString()}</td>
+                                <td>${record.task_id || '-'}</td>
+                                <td>${record.steel_grade}</td>
+                                <td>${record.heat_stage}</td>
+                                <td>${record.start_temp || '-'}</td>
+                                <td>${record.end_temp || '-'}</td>
+                                <td>${record.heat_level}</td>
+                                <td>${record.heat_duration}</td>
+                                <td>${record.success ? '<span class="badge badge-success">成功</span>' : '<span class="badge badge-error">失败</span>'}</td>
+                            `;
+                        });
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">暂无数据</td></tr>';
+                    }
+                })
+                .catch(error => console.error('Error loading history:', error));
+        }
+    </script>
+</body>
+</html>
